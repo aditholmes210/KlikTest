@@ -1,0 +1,84 @@
+package com.crawler;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.io.*;
+
+public class BusinessCrawler {
+
+    private static final String BASE_URL = "https://www.bisnis.com";
+
+    // Crawl artikel di rentang tanggal
+    public List<Article> crawlByDateRange(LocalDate startDate, LocalDate endDate) throws IOException, InterruptedException {
+        List<Article> articles = new ArrayList<>();
+        // Contoh: bisnis.com/archive/yyyy/MM/dd/page/1
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            String url = String.format("%s/archive/%d/%02d/%02d", BASE_URL, currentDate.getYear(),
+                    currentDate.getMonthValue(), currentDate.getDayOfMonth());
+            articles.addAll(scrapeArticlesFromArchive(url, currentDate));
+            currentDate = currentDate.plusDays(1);
+        }
+        return articles;
+    }
+
+    // Crawl artikel terbaru
+    public List<Article> crawlLatest() throws IOException {
+        String url = BASE_URL + "/latest"; // Asumsi ada halaman latest
+        return scrapeArticlesFromArchive(url, null);
+    }
+
+    private List<Article> scrapeArticlesFromArchive(String url, LocalDate filterDate) throws IOException {
+        List<Article> articles = new ArrayList<>();
+        Document doc = Jsoup.connect(url).get();
+        Elements articleLinks = doc.select("div.article-list a.article-link"); // selector perlu disesuaikan
+        for (Element link : articleLinks) {
+            String articleUrl = BASE_URL + link.attr("href");
+            Article article = scrapeArticleDetail(articleUrl);
+            if (article != null) {
+                if (filterDate == null || article.publishDate.equals(filterDate)) {
+                    articles.add(article);
+                }
+            }
+        }
+        return articles;
+    }
+
+    private Article scrapeArticleDetail(String articleUrl) throws IOException {
+        Document doc = Jsoup.connect(articleUrl).get();
+        String title = doc.select("h1.title").text();
+        String content = doc.select("div.article-content").text();
+        String dateStr = doc.select("time.published-date").attr("datetime"); // Harus sesuai html asli
+        if(title.isEmpty() || content.isEmpty() || dateStr.isEmpty()) return null;
+        LocalDate publishDate = LocalDate.parse(dateStr.substring(0,10)); // Asumsi ISO8601
+        return new Article(articleUrl, title, content, publishDate);
+    }
+
+    // Serialize hasil ke JSON
+    public void writeArticlesToJson(List<Article> articles, String filePath) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writeValue(new File(filePath), articles);
+    }
+
+    // Class Article
+    public static class Article {
+        public String link;
+        public String title;
+        public String content;
+        public LocalDate publishDate;
+
+        public Article(String link, String title, String content, LocalDate publishDate) {
+            this.link = link;
+            this.title = title;
+            this.content = content;
+            this.publishDate = publishDate;
+        }
+    }
+}

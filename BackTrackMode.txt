@@ -1,0 +1,20 @@
+package com.crawler;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class BacktrackMode {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: BacktrackMode <startDate> <endDate> (format: yyyy-MM-dd)");
+            System.exit(1);
+        }
+        LocalDate startDate = LocalDate.parse(args[0]);
+        LocalDate endDate = LocalDate.parse(args[1]);
+        BusinessCrawler crawler = new BusinessCrawler();
+        List<BusinessCrawler.Article> articles = crawler.crawlByDateRange(startDate, endDate);
+        crawler.writeArticlesToJson(articles, "backtrack_output.json");
+        System.out.println("Backtrack crawling selesai. Output: backtrack_output.json");
+    }
+}
