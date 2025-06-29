@@ -1,0 +1,21 @@
+package com.crawler;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+public class StandardMode {
+    public static void main(String[] args) throws Exception {
+        int intervalSeconds = 300; // default 5 menit, bisa di-config via args atau config file
+        if (args.length == 1) {
+            intervalSeconds = Integer.parseInt(args[0]);
+        }
+        BusinessCrawler crawler = new BusinessCrawler();
+
+        while (true) {
+            List<BusinessCrawler.Article> articles = crawler.crawlLatest();
+            crawler.writeArticlesToJson(articles, "standard_output.json");
+            System.out.println("Artikel terbaru berhasil diambil dan disimpan.");
+            TimeUnit.SECONDS.sleep(intervalSeconds);
+        }
+    }
+}
