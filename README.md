@@ -1,2 +1,2 @@
-# KlikTest
-Technical Test @ Klik
+# NoLimitTest
+Technical Test @ NoLimit
